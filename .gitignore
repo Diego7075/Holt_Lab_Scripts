@@ -1,0 +1,20 @@
+# Participant data
+data/
+
+# MATLAB temporary files
+*.asv
+*.m~
+*.mex*
+slprj/
+codegen/
+
+# Windows network configuration
+enable_ethernet*
+disable_ethernet*
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+Desktop.ini
