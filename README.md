@@ -1,143 +1,241 @@
-# SMART Experiment (Psychtoolbox)
+# Holt Lab Scripts
 
-SMART is a MATLAB/Psychtoolbox experiment for studying audiovisual
-statistical learning using visual target responses. The experiment
-supports both a visualization-only mode for development and a full
-hardware mode. This implementation is intended for laboratory experiments 
-with simultaneous EEG acquisition and hardware  synchronization 
-using the VPixx ecosystem (VIEWPixx + DATAPixx + RESPONSEPixx), 
-Pixel Mode triggering, and an EEG-specific counterbalancing scheme.
+MATLAB/Psychtoolbox validation scripts for the Holt Laboratory neuroengineering platform. This repository contains standalone utilities used to validate hardware communication, timing accuracy, trigger transmission, audiovisual synchronization, and behavioral response acquisition before experimental data collection.
 
-## Features
+The scripts support the laboratory hardware configuration based on Brain Products, VPixx Technologies, and RME devices, and are intended to verify each component individually before validating the complete experimental pipeline.
 
--   MATLAB + Psychtoolbox implementation
--   Visualization mode for debugging
--   Full VPixx hardware support
--   Automatic ISI balancing
--   Automatic response-mapping balancing
--   Pixel Mode trigger generation
--   Trial-by-trial behavioral and event logging
+## Hardware
 
-## Requirements
+* Brain Products actiCHamp Plus
+* BrainVision Recorder 2
+* Brain Products TriggerBox
+* VPixx DATAPixx3
+* VPixx VIEWPixx EEG
+* VPixx RESPONSEPixx Handheld (VPX-ACC-3100)
+* VPixx RESPONSEPixx Dual Handheld (VPX-ACC-3000)
+* RME Babyface Pro FS
+* StimTrak
+* Acoustic Adapter
+* MATLAB
+* Psychtoolbox-3
 
-### Software
+---
 
--   MATLAB
--   Psychtoolbox
--   VPixx Datapixx Toolbox (hardware mode)
+## Repository Contents
 
-### Asset folders
+### 1. `triggerbox_trigger_test.m`
 
-    flac_practice
-    flac_task
-    flac_generalization
+Validates digital trigger transmission through the Brain Products TriggerBox.
 
-All auditory stimuli are stored as lossless FLAC files sampled at 48 kHz to maximize compatibility across audio devices and Psychtoolbox installations
+A single TTL pulse is transmitted through the TriggerBox using a serial connection, allowing verification that BrainVision Recorder correctly detects digital trigger events from the actiCHamp amplifier.
 
-Run the experiment with:
+**Validation path**
 
-``` matlab
-SMART
+```
+Stimulus Computer
+        │
+        ▼
+    TriggerBox
+        │
+        ▼
+ actiCHamp Plus
+        │
+        ▼
+ BrainVision Recorder 2
 ```
 
-## Execution Modes
+---
 
-### Visualization
+### 2. `microphone_test.m`
 
--   Screen 1
--   Keyboard D/F/J/K
--   No DATAPixx
--   Pixel squares drawn visually
--   Events logged
+Validates synchronized microphone acquisition and trigger generation.
 
-### Full Hardware
+The script records audio from an RME Babyface Pro FS microphone input using PsychPortAudio while simultaneously transmitting start and stop triggers through the TriggerBox. The recording is automatically saved as a WAV file.
 
--   Screen 3
--   DATAPixx Pixel Mode enabled
--   RESPONSEPixx buttons and LEDs
--   Requires \~120 Hz VIEWPixx
+**Validation path**
 
-## Participant Balancing
+```
+Microphone
+      │
+      ▼
+Babyface Pro FS
+      │
+      ▼
+MATLAB
+      │
+      ▼
+WAV recording
+```
 
-The script creates `data/ISI_Assignments.csv` and automatically balances
-both ISI conditions and response mappings across participants.
+Simultaneously,
 
-### ISI conditions
+```
+Microphone
+      │
+      ▼
+Babyface Pro FS
+      │
+      ▼
+Acoustic Adapter
+      │
+      ▼
+StimTrak
+      │
+      ▼
+actiCHamp Plus
+```
 
-- 0 ms
-- 250 ms
-- 500 ms
-- 1100 ms
+---
 
-### Response mappings
+### 3. `viewpixx_screen_checking.m`
 
-The experiment counterbalances the mapping between sequence elements and response buttons using four predefined mappings:
+Verifies Psychtoolbox screen detection and VIEWPixx display timing.
 
-- `AXBY`
-- `BYAX`
-- `YBXA`
-- `XAYB`
+The script first identifies every display detected by Psychtoolbox, allowing the user to determine the correct VIEWPixx screen index. It then opens the selected VIEWPixx display, measures the inter-frame interval (IFI), estimates the refresh rate, and confirms the expected display resolution.
 
-Unlike the original behavioral Gorilla version, these mappings were selected 
-so that both halves of every sequence always contain one unidimensional (A/B) 
-and one multidimensional (X/Y) element. This preserves the intended 
-counterbalancing while avoiding systematic differences in the temporal 
-distribution of UNI and MULTI elements across the sequence, which is 
-important for EEG experiments where the two stimulus classes may evoke 
-different neural activity.
+Expected configuration:
 
-## Trigger Scheme
+* Resolution: 1920 × 1080
+* Refresh rate: 120 Hz
+* Background color: RGB [128 128 128]
 
-  Phase            RGB
-  ---------------- -------------
-  Practice         \[16 0 0\]
-  Task             \[32 0 0\]
-  Violation        \[64 0 0\]
-  Generalization   \[128 0 0\]
+---
 
-  Response     RGB
-  ------------ -------------
-  Yellow (D)   \[0 16 0\]
-  Green (F)    \[0 32 0\]
-  Blue (J)     \[0 64 0\]
-  Red (K)      \[0 128 0\]
+### 4. VIEWPixx Pixel Mode validation
 
-Each trigger is displayed for three frames.
+#### `viewpixx_trigger_test.m`
 
-## Output
+Validates Pixel Mode trigger transmission.
 
--   .mat results
--   Trial CSV
--   Event CSV
--   Summary CSV
+The script sequentially presents predefined RGB trigger values in the Pixel Mode region located in the upper-left corner of the VIEWPixx display. These RGB values are converted by the VIEWPixx into TTL pulses, allowing verification that BrainVision Recorder correctly detects every trigger combination.
+
+**Validation path**
+
+```
+Stimulus Computer
+        │
+        ▼
+VIEWPixx EEG
+        │
+        ▼
+ actiCHamp Plus
+        │
+        ▼
+BrainVision Recorder 2
+```
+
+---
+
+#### `viewpixx_trigger_test_2.m`
+
+Validates audiovisual synchronization using Pixel Mode.
+
+Each trial presents a synchronized visual Pixel Mode trigger together with an auditory stimulus. Because both events are scheduled using the same Psychtoolbox target time, this script allows verification of the temporal alignment between recorded audio and digital trigger markers.
+
+**Validation path**
+
+Visual
+
+```
+Stimulus Computer
+        │
+        ▼
+VIEWPixx EEG
+        │
+        ▼
+ actiCHamp Plus
+        │
+        ▼
+BrainVision Recorder 2
+```
+
+Audio
+
+```
+Stimulus Computer
+        │
+        ▼
+Acoustic Adapter
+        │
+        ▼
+StimTrak
+        │
+        ▼
+ actiCHamp Plus
+        │
+        ▼
+BrainVision Recorder 2
+```
+
+---
+
+### 5. `datapixx_responsepixx_test.m`
+
+Validates communication between the DATAPixx3 and RESPONSEPixx controllers.
+
+Both supported RESPONSEPixx controllers can be selected at startup:
+
+* VPX-ACC-3100 Handheld (5 buttons)
+* VPX-ACC-3000 Dual Handheld (4 buttons)
+
+The script validates LED control, button acquisition, timestamp generation, and TTL trigger transmission generated through the DATAPixx3 Digital OUT connector.
+
+**Validation path**
+
+```
+Stimulus Computer
+        │
+        ▼
+   DATAPixx3
+        │
+        ▼
+ RESPONSEPixx
+```
+
+and
+
+```
+DATAPixx3 Digital OUT
+          │
+          ▼
+ actiCHamp Plus
+          │
+          ▼
+BrainVision Recorder 2
+```
+
+---
+
+### 6. `datapixx_viewpixx_responsepixx_test.m`
+
+Validates the complete visual experimental pipeline.
+
+This script combines the DATAPixx3, VIEWPixx EEG, and RESPONSEPixx into the final hardware configuration used during behavioral experiments.
+
+Both RESPONSEPixx controllers are supported. During each trial, the selected RESPONSEPixx button is illuminated while a matching colored cue appears on the VIEWPixx display. Simultaneously, Pixel Mode generates the corresponding hardware trigger. Correct responses are timestamped, and trigger activation and deactivation are verified in BrainVision Recorder.
+
+**Validation path**
+
+```
+Stimulus Computer
+        │
+        ▼
+   DATAPixx3
+        │
+        ├────────► RESPONSEPixx
+        │
+        ▼
+ VIEWPixx EEG
+        │
+        ▼
+ actiCHamp Plus
+        │
+        ▼
+BrainVision Recorder 2
+```
+
+---
 
 ## Notes
 
--   Response-screen trigger repeats the phase marker.
--   ISI applies only to Practice, Task, and Violation.
--   Generalization presents 48 trials twice to create 96 trials.
--   Practice repeats until all responses are correct and under 1.5 s.
--   Verify RESPONSEPixx button mapping before data collection.
--   All audio files must share one sampling rate.
-
-## Validation
-
-Before collecting experimental data, it is recommended to:
-
-1. Run the validation script.
-2. Test Visualization mode.
-3. Test Full Hardware mode.
-4. Verify Pixel Mode triggers.
-
-### Reducing the number of trials during development
-
-For debugging purposes, both `SMART_Task.m` and `SMART_Generalization.m` contain the following temporary code block:
-
-```matlab
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Temporary: keep only two trials while testing (comment to nulify)
-order = order(1:2);
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-```
-
-Leaving this code active limits each randomized block to two trials. Comment out (or remove) these lines before running the complete experiment.
+These scripts are intended as independent validation utilities and can be executed individually depending on the hardware component being tested. They are primarily designed to verify hardware installation, timing accuracy, trigger transmission, and communication before running experimental protocols.
