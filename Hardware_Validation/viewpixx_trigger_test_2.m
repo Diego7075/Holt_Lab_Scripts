@@ -27,8 +27,8 @@ sca;
 clear; 
 clc;
 
-% VIEWPixx in current Windows/PTB layout
-screenNumber = 3;
+% VIEWPixx/ViewSonic in current Windows/PTB layout
+screenNumber = 2;
 
 % Sets common PTB defaults
 PsychDefaultSetup(2);
@@ -43,8 +43,8 @@ Screen('Preference', 'SkipSyncTests', 0);
 % 1-3 = increase amount of debugging information
 Screen('Preference', 'VisualDebugLevel', 0);
 
-% Disables some Windows optimizations that can interfere with precise timing
-Screen('Preference', 'ConserveVRAM', 16384);
+% Enables the Windows workaround for inaccurate screen timing queries
+Screen('Preference', 'ConserveVRAM', 4096);
 
 % Connect Matlab to ViewPixx
 Datapixx('Open');
@@ -77,12 +77,75 @@ backgroundTexture = Screen('MakeTexture', window, img);
 
 % These are the trigger shapes drawn over the background texture. In PTB, shapes are always defined as [left top right bottom]
 triggerPixel = [0 0 1 1];
-triggerSquare = [0 0 5 5];
+triggerSquare = [0 0 40 40];
 
 % Enables sound in PTB and load file
 InitializePsychSound(1);
 wav_file = 'C:\Users\HoltLabUsers\Scripts\timing_test.wav';
 [beep, fs] = audioread(wav_file);
+
+% Detect all available PsychPortAudio devices
+devices = PsychPortAudio('GetDevices');
+
+% Shows all detected audio output devices
+fprintf('\n## Available audio output devices\n\n');
+for i = 1:length(devices)
+    if devices(i).NrOutputChannels > 0
+        fprintf('%-3d %-45s API=%-2d Out=%d\n', ...
+            devices(i).DeviceIndex, ...
+            devices(i).DeviceName, ...
+            devices(i).HostAudioAPIId, ...
+            devices(i).NrOutputChannels);
+    end
+end
+
+% Select the audio pathway
+fprintf('\nSelect the audio output used for timing validation:\n');
+fprintf('1 - Desktop headphone jack -> StimTrak\n');
+fprintf('2 - Babyface Analog 3/4\n\n');
+
+choice = input('Selection (1 or 2): ');
+
+switch choice
+
+    case 1
+        % Desktop headphone output
+        audioDeviceName = 'Headphones (Realtek HD Audio 2nd output with SST)';
+        audioDeviceHostAPIName = 'Windows WDM-KS';
+
+    case 2
+        % Babyface Analog 3/4 output
+        audioDeviceName = 'Analog (3+4) (RME Babyface Pro)';
+        audioDeviceHostAPIName = 'Windows WASAPI';
+
+    otherwise
+        error('Invalid audio output selection');
+end
+
+% Find the selected audio output by device name, Host API, and number of output channels
+audioChannels = 2;
+
+matches = strcmp({devices.DeviceName}, audioDeviceName) & ...
+          strcmp({devices.HostAudioAPIName}, audioDeviceHostAPIName) & ...
+          [devices.NrOutputChannels] >= audioChannels;
+
+if ~any(matches)
+    error('Audio device "%s" using "%s" was not found', ...
+        audioDeviceName, audioDeviceHostAPIName);
+end
+
+if sum(matches) > 1
+    error('Multiple audio output devices matched "%s" using "%s"', ...
+        audioDeviceName, audioDeviceHostAPIName);
+end
+
+audioDevice = devices(matches);
+audioDeviceIndex = audioDevice.DeviceIndex;
+
+fprintf('\nSelected audio output\n');
+fprintf('Device : %s\n',audioDevice.DeviceName);
+fprintf('Index  : %d\n',audioDevice.DeviceIndex);
+fprintf('API    : %s\n\n',audioDevice.HostAudioAPIName);
 
 % PsychPortAudio expects channels x samples
 beep = beep';
@@ -94,7 +157,7 @@ end
 nrchannels = size(beep,1);
 
 % Time control
-nTrials = 50;
+nTrials = 20;
 preWait = 1.0;
 pulseDur = 0.10;
 postWait = 1.0;
@@ -105,7 +168,9 @@ ifi = Screen('GetFlipInterval', window);
 try 
     
     % Opens the audio device and loads the beep into memory
-    pahandle = PsychPortAudio('Open', [], 1, 1, fs, nrchannels);
+    pahandle = PsychPortAudio('Open',audioDeviceIndex,1, ...
+        2,fs,audioChannels);
+
     PsychPortAudio('FillBuffer', pahandle, beep);
     
     % Displays an initial idle screen before the experiment starts

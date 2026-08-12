@@ -38,6 +38,9 @@ Screen('Preference', 'VisualDebugLevel', 0);
 % Lists all screens currently detected by PTB
 screens = Screen('Screens');
 
+% Removes PTB screen 0 from the identification test
+screens = screens(screens ~= 0);
+
 for i = 1:length(screens)
 
     % Gets one PTB screen number and its screen rectangle
@@ -61,17 +64,18 @@ for i = 1:length(screens)
 
     sca;
     WaitSecs(1);
+
 end
 
 %% This is to check screen resolution and sampling rate in ViewPixx
 % Ideal resolution: 1920 x 1080
 % Ideal sampling rate: 120 Hz
-% screenNumber = 3 (ViewPixx)
+% screenNumber = 2 (ViewSonic/VIEWPixx duplicated pair)
 % Ideal color: gray [128 128 128]
 
 sca;
 clear; 
-% clc;
+clc;
 
 % Sets common PTB defaults
 PsychDefaultSetup(2);
@@ -86,8 +90,8 @@ Screen('Preference', 'SkipSyncTests', 0);
 % 1-3 = increase amount of debugging information
 Screen('Preference', 'VisualDebugLevel', 0);
 
-% VIEWPixx in current Windows/PTB layout
-screenNumber = 3;
+% ViewSonic/VIEWPixx duplicated pair in current Windows/PTB layout
+screenNumber = 2;
 
 % Opens the VIEWPixx screen with a gray background
 [window, rect] = Screen('OpenWindow', screenNumber, [128 128 128]);
@@ -103,3 +107,4 @@ fprintf('Refresh = %.2f Hz\n', 1/ifi);
 WaitSecs(20);
 
 sca;
+

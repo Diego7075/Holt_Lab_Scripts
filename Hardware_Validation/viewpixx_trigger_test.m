@@ -16,8 +16,8 @@
 sca;
 clear; clc;
 
-% VIEWPixx in current Windows/PTB layout
-screenNumber = 3;
+% VIEWPixx/VierSonic in current Windows/PTB layout
+screenNumber = 2;
 
 % Sets common PTB defaults
 PsychDefaultSetup(2);
@@ -32,8 +32,8 @@ Screen('Preference', 'SkipSyncTests', 0);
 % 1-3 = increase amount of debugging information
 Screen('Preference', 'VisualDebugLevel', 0);
 
-% Disables some Windows optimizations that can interfere with precise timing
-Screen('Preference', 'ConserveVRAM', 16384);
+% Enables the Windows workaround for inaccurate screen timing queries
+Screen('Preference', 'ConserveVRAM', 4096);
 
 % Connect Matlab to ViewPixx
 Datapixx('Open');

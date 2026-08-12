@@ -41,8 +41,8 @@ sca;
 clear;
 clc;
 
-% VIEWPixx EEG screen number in the current Windows/PTB display layout
-screenNumber = 3;
+% VIEWPixx/ViewSonic in current Windows/PTB layout
+screenNumber = 2;
 
 % Number of successful trials required for each RESPONSEPixx button
 nPresses = 2;
@@ -104,7 +104,9 @@ AssertOpenGL;
 % Keeps PTB timing checks enabled for laboratory validation
 Screen('Preference','SkipSyncTests',0);
 Screen('Preference','VisualDebugLevel',0);
-Screen('Preference','ConserveVRAM',16384);
+
+% Enables the Windows workaround for inaccurate screen timing queries
+Screen('Preference', 'ConserveVRAM', 4096);
 
 KbName('UnifyKeyNames');
 escapeKey = KbName('ESCAPE');
