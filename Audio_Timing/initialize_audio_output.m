@@ -10,8 +10,9 @@ function [cfg,pahandle] = initialize_audio_output
 % At startup, the function enumerates the available PsychPortAudio output
 % devices and prompts the user to select one of two supported pathways:
 %
-%     1 - Desktop headphone jack (Realtek)
-%     2 - RME Babyface Analog 3/4
+%     1 - Computer speakers (development/troubleshooting)
+%     2 - Desktop headphone jack (Realtek -> StimTrak)
+%     3 - RME Babyface Analog 3/4
 %
 % The requested device is located automatically using its device name,
 % Windows WASAPI backend, and number of output channels. The function then
@@ -80,23 +81,65 @@ end
 
 fprintf('\n');
 fprintf('Select the audio output:\n');
-fprintf('  1 - Desktop headphone jack -> StimTrak\n');
-fprintf('  2 - Babyface Analog 3/4\n\n');
+fprintf('  1 - Computer speakers\n');
+fprintf('  2 - Desktop headphone jack -> StimTrak\n');
+fprintf('  3 - Babyface Analog 3/4\n\n');
 
-choice = input('Selection (1 or 2): ');
+choice = input('Selection (1, 2, or 3): ');
 
 % Define the requested playback device
 switch choice
 
     case 1
 
+        % Built-in computer speakers.
+        % This is a flexible troubleshooting/development pathway rather than
+        % a validated experimental audio pathway. The exact speaker name may
+        % differ between computers, so identify it dynamically.
+        cfg.audioDeviceHostAPIName = 'Windows WASAPI';
+        cfg.audioChannels = 2;
+        cfg.audioPath = 'speaker';
+
+        speakerMatches = ...
+            startsWith({devices.DeviceName}, 'Speakers', 'IgnoreCase', true) & ...
+            strcmp({devices.HostAudioAPIName}, cfg.audioDeviceHostAPIName) & ...
+            [devices.NrOutputChannels] >= cfg.audioChannels;
+
+        if ~any(speakerMatches)
+
+            error('No suitable Windows WASAPI speaker output was found.');
+
+        elseif sum(speakerMatches) > 1
+
+            fprintf('\nMultiple Windows WASAPI speaker outputs were found:\n');
+
+            idx = find(speakerMatches);
+
+            for k = 1:length(idx)
+                fprintf('  %d  %s\n', ...
+                    devices(idx(k)).DeviceIndex, ...
+                    devices(idx(k)).DeviceName);
+            end
+
+            error(['Multiple speaker outputs matched. ' ...
+                   'Speaker selection cannot be determined automatically.']);
+
+        end
+
+        audioDevice = devices(speakerMatches);
+        cfg.audioDeviceName = audioDevice.DeviceName;
+
+    case 2
+
+        % Desktop Realtek headphone output -> StimTrak
         cfg.audioDeviceName = 'Headphones (Realtek(R) Audio)';
         cfg.audioDeviceHostAPIName = 'Windows WASAPI';
         cfg.audioChannels = 2;
         cfg.audioPath = 'realtek';
 
-    case 2
+    case 3
 
+        % RME Babyface Analog 3/4
         cfg.audioDeviceName = 'Analog (3+4) (RME Babyface Pro)';
         cfg.audioDeviceHostAPIName = 'Windows WASAPI';
         cfg.audioChannels = 2;
@@ -104,7 +147,7 @@ switch choice
 
     otherwise
 
-        error('Invalid selection.');
+        error('Invalid selection. Choose 1, 2, or 3.');
 
 end
 
